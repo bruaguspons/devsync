@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -29,6 +30,10 @@ func main() {
 	}
 
 	if err := core.Run(providers, core.DefaultLockPath(), *yes); err != nil {
+		if errors.Is(err, mise.ErrNotInstalled) {
+			fmt.Fprintln(os.Stderr, "devsync: mise is not installed.\n\ndevsync manages tool versions via mise (https://mise.jdx.dev). Install it with:\n\n    curl https://mise.run | sh\n\nThen re-run devsync.")
+			os.Exit(1)
+		}
 		fmt.Fprintln(os.Stderr, "devsync: "+err.Error())
 		os.Exit(1)
 	}

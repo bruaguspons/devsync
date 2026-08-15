@@ -3,12 +3,18 @@ package mise
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
 
 	"github.com/bruaguspons/devsync/core"
 )
+
+// ErrNotInstalled is returned (wrapped) by LocalState when the `mise`
+// executable cannot be found on PATH, so callers can distinguish "mise
+// isn't installed" from any other failure and show a friendly message.
+var ErrNotInstalled = errors.New("mise: executable not found in PATH; install it with: curl https://mise.run | sh")
 
 // normalizeToolName strips surrounding quotes (as can appear when a TOML
 // key like "aqua:boyter/scc" is read back with quoting) while preserving
@@ -40,6 +46,9 @@ func runMiseListJSON() ([]byte, error) {
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if errors.Is(err, exec.ErrNotFound) {
+			return nil, ErrNotInstalled
+		}
 		return nil, fmt.Errorf("mise ls --json: %w (stderr: %s)", err, stderr.String())
 	}
 	return stdout.Bytes(), nil

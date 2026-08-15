@@ -1,11 +1,23 @@
 package mise
 
 import (
+	"errors"
 	"os"
 	"testing"
 
 	"github.com/bruaguspons/devsync/core"
 )
+
+func TestLocalState_MiseNotInstalled(t *testing.T) {
+	emptyDir := t.TempDir()
+	t.Setenv("PATH", emptyDir)
+
+	p := &Provider{}
+	_, err := p.LocalState()
+	if !errors.Is(err, ErrNotInstalled) {
+		t.Fatalf("LocalState() error = %v, want errors.Is(err, ErrNotInstalled)", err)
+	}
+}
 
 func TestDecodeMiseList_RealFixture(t *testing.T) {
 	data, err := os.ReadFile("testdata/mise_ls_sample.json")
