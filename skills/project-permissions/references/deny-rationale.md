@@ -18,7 +18,7 @@
 | `gh` / `glab` / `hub` write subcommands, `gh api -X`, `gh api --method` | PRs, issues, releases, secrets, workflow dispatch, repo mutation |
 | `npm/pnpm/yarn/cargo/twine/gem/mvn publish`, `docker push`, `docker login` | Publishing artifacts to external registries |
 | `sudo`, `git config --global/--system` | Escaping project scope and rewriting machine-wide git identity |
-| `Read`/`Edit` on `.env*`, `.ssh`, `.aws/credentials`, `.netrc`, `.npmrc`, `.git-credentials`, `.git/**` | Secret exfiltration and hand-editing git internals to reach a remote |
+| `Read` on named secret-bearing env files (`.env`, `.env.local`, `.env.development[.local]`, `.env.test[.local]`, `.env.production[.local]`, `.env.staging[.local]`, `.env.qa[.local]`, `.env.stage[.local]`, `.env.vault`), plus `.ssh`, `.aws/credentials`, `.netrc`, `.npmrc`, `.git-credentials`, `.git/**` | Secret exfiltration and hand-editing git internals to reach a remote. `.env.example` is explicitly allowed (Read+Write) since it's a committed, secret-free template |
 
 `git commit` (without `--amend`) is deliberately allowed: `/commit-changes` is the single sanctioned write.
 
@@ -31,6 +31,7 @@ Prefix matching is defeated by any command whose text does not literally start w
 - wrapper scripts — `./scripts/deploy.sh`, `make release`, a `package.json` script that pushes
 - aliases and git config — `git config alias.p push` then `git p`
 - non-Bash tools — a `Write` to `.git/hooks/pre-commit`, though `Edit(./.git/**)` covers the common case
+- unlisted env filenames — the env deny list is now an enumerated set (to carve out `.env.example`), not a `.env.*` wildcard, so a project-specific name like `.env.ci` or `.env.secrets` is not covered unless added
 
 This baseline is a **guardrail against accident and drift**, not a sandbox against a determined actor. A `PreToolUse` hook inspecting the full command string is the stronger option if that threat model matters later.
 
