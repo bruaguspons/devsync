@@ -51,7 +51,7 @@ detect_os() {
 }
 
 install_main() {
-  local os arch api_url latest_json tag asset_name asset_url tmp_dir archive_path
+  local os arch api_url latest_json tag asset_name asset_url archive_path
 
   os="$(detect_os)"
   arch="$(detect_arch)"
