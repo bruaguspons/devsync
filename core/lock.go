@@ -34,7 +34,7 @@ const lockFileVersion = 1
 // gentle-ai's skill-registry mechanism (different path, different
 // schema, different owner).
 func DefaultLockPath() string {
-	return filepath.Join(UserHomeDir(), ".local", "share", "devsync", "lock.json")
+	return filepath.Join(UserHomeDir(), ".local", "share", "devsync", "devsync-lock.json")
 }
 
 // LoadLock reads and decodes the lock file at path. A missing file is

@@ -13,6 +13,20 @@ Both resource kinds are diffed and presented in one combined
 select/confirm screen, distinguished only by a `[tool]`/`[skill]`
 label prefix — there is no separate command per resource kind.
 
+## Install
+
+Download and run the installer from GitHub with `curl`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/bruaguspons/devsync/main/install.sh | bash
+```
+
+This downloads the latest GitHub Release for your platform (`linux/amd64`
+or `linux/arm64`), installs the `devsync` binary to `~/.local/bin`, and
+installs the bundled `mise.toml.snapshot`/`skills.snapshot` to
+`~/.local/share/devsync`. Re-running the same command updates an
+existing install to the latest release.
+
 ## Usage
 
 ```bash
@@ -70,7 +84,7 @@ accepted-risk behavior, not a bug.
 
 ## Lock file
 
-`devsync` writes `~/.local/share/devsync/lock.json` after every
+`devsync` writes `~/.local/share/devsync/devsync-lock.json` after every
 successful apply, recording each resource's kind/name/version. It is a
 **cache, not a trust source**: `LocalState()` is always queried fresh
 on every run (`mise ls --json` for tools, an on-disk hash walk for
