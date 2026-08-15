@@ -104,7 +104,16 @@ jobs:
         env:
           HOME: ${{ env.DEMO_HOME }}
         run: |
+          set -euo pipefail
           export PATH="$DEMO_HOME/.local/bin:$PATH"
+          # devsync's mise provider resolves local tool state via `mise ls
+          # --json`, which finds mise.toml by walking up from the cwd. Hide
+          # this repo's own mise.toml for the recording so devsync only sees
+          # the isolated fixture under $DEMO_HOME instead of every real dev
+          # tool this repo uses (which previously flooded the recorded diff
+          # and threw off the tape's scripted keystrokes).
+          mv mise.toml mise.toml.bak
+          trap 'mv mise.toml.bak mise.toml' EXIT
           vhs docs/demo.tape
 
       - name: Commit updated GIF
