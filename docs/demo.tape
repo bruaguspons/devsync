@@ -24,17 +24,20 @@ Set Width 1000
 Set Height 560
 Set Theme "Dracula"
 Set Padding 20
-Set TypingSpeed 60ms
+
+Set TypingSpeed 40ms
 
 Type "curl -fsSL https://raw.githubusercontent.com/bruaguspons/devsync/main/install.sh | bash"
 Enter
-Sleep 10s
+Sleep 5s
 
 Hide
 Type "cp -f $FIXTURE_DIR/mise.toml.snapshot $HOME/.local/share/devsync/mise.toml.snapshot && rm -rf $HOME/.local/share/devsync/skills.snapshot $HOME/.claude/skills && cp -r $FIXTURE_DIR/skills.snapshot $HOME/.local/share/devsync/skills.snapshot && mkdir -p $HOME/.claude/skills && clear"
 Enter
 Sleep 500ms
 Show
+
+Set TypingSpeed 60ms
 
 Type "devsync"
 Enter
@@ -52,7 +55,7 @@ Sleep 1200ms
 Left
 Sleep 700ms
 Enter
-Sleep 6s
+Sleep 3s
 
 Type "devsync"
 Enter
