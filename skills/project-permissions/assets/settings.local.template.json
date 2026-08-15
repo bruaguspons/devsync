@@ -16,7 +16,8 @@
       "Read(./.env.example)",
       "Read(./**/.env.example)",
       "Write(./.env.example)",
-      "Write(./**/.env.example)"
+      "Write(./**/.env.example)",
+      "Read(/root/.claude/skills/**)"
     ],
     "ask": [
       "Bash(gh api:*)",
@@ -33,8 +34,7 @@
       "Bash(aws:*)",
       "Bash(gcloud:*)",
       "Bash(rm -rf:*)",
-      "Edit(./.github/workflows/**)",
-      "Write(./.github/workflows/**)"
+      "Edit(./.github/workflows/**)"
     ],
     "deny": [
       "Bash(git push)",
