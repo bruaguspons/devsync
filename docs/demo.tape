@@ -26,12 +26,16 @@ Enter
 Sleep 1500ms
 
 Space
+Sleep 700ms
 Down
+Sleep 400ms
 Space
+Sleep 700ms
 Enter
-Sleep 500ms
+Sleep 1200ms
 
 Left
+Sleep 700ms
 Enter
 Sleep 6s
 
