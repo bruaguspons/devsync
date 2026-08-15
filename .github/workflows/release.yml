@@ -110,12 +110,12 @@ jobs:
       - name: Commit updated GIF
         run: |
           set -euo pipefail
-          if git diff --quiet -- docs/demo.gif; then
+          git add docs/demo.gif
+          if git diff --cached --quiet -- docs/demo.gif; then
             echo "demo.gif unchanged, nothing to commit"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/demo.gif
           git commit -m "chore: update demo gif for ${{ needs.tag.outputs.new_tag }} [skip ci]"
           git push origin HEAD:main
