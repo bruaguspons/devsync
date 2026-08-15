@@ -1,0 +1,18 @@
+# Runtimes y CLIs del entorno de desarrollo.
+# Actualizar:      mise upgrade
+# Fijar versiones: mise lock   (genera mise.lock con versiones + checksums; commitealo)
+
+[tools]
+node = "lts"
+bun  = "latest"
+pnpm = "latest"
+rust = "latest"
+
+# ─── CLIs recomendadas para Claude Code ───────────────────────────
+yq                = "latest"  # jq para YAML/TOML/XML
+sd                = "latest"  # sed moderno (regex)
+difftastic        = "latest"  # diff por AST — binario: difft
+ast-grep          = "latest"  # búsqueda/refactor por AST — binario: sg
+"aqua:boyter/scc" = "latest"  # conteo de líneas por lenguaje
+hyperfine         = "latest"  # benchmarking de comandos
+watchexec         = "latest"  # ejecuta comandos al detectar cambios

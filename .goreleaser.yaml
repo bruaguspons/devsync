@@ -1,0 +1,46 @@
+version: 2
+
+project_name: devsync
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: devsync
+    main: .
+    dir: .
+    binary: devsync
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X main.version={{ .Version }}
+
+archives:
+  - id: devsync
+    ids:
+      - devsync
+    formats: [tar.gz]
+    name_template: >-
+      {{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}
+    files:
+      - src: mise.toml
+        dst: mise.toml.snapshot
+      - src: skills
+        dst: skills.snapshot
+
+checksum:
+  name_template: "checksums.txt"
+
+release:
+  github:
+    owner: bruaguspons
+    name: devsync
+
+changelog:
+  disable: true

@@ -1,0 +1,16 @@
+# Build artifacts
+/devsync
+/dist/
+
+# Go
+*.test
+*.out
+
+# goreleaser
+*.tar.gz
+
+.agents
+.atl
+.claude
+CLAUDE.md
+skills-lock.json
