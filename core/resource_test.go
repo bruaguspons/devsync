@@ -37,6 +37,25 @@ func TestDiffItem_Construction(t *testing.T) {
 	}
 }
 
+func TestDiffItem_OwnershipWarning_ZeroValueIsFalse(t *testing.T) {
+	var d DiffItem
+	if d.OwnershipWarning != false {
+		t.Fatalf("zero-value DiffItem.OwnershipWarning = %v, want false", d.OwnershipWarning)
+	}
+}
+
+func TestDiffItem_OwnershipWarning_RoundTrips(t *testing.T) {
+	d := DiffItem{
+		ResourceKind:     ResourceKindSkill,
+		Name:             "pr-reviewer",
+		Kind:             KindNew,
+		OwnershipWarning: true,
+	}
+	if d.OwnershipWarning != true {
+		t.Fatalf("DiffItem.OwnershipWarning = %v, want true", d.OwnershipWarning)
+	}
+}
+
 func TestApplyResult_Construction(t *testing.T) {
 	item := DiffItem{Name: "x", Kind: KindNew}
 	r := ApplyResult{Item: item, Err: nil}

@@ -23,16 +23,21 @@ func resourceKindLabel(kind ResourceKind) string {
 // multi-select checklist, prefixed by its ResourceKind.
 func diffItemLabel(item DiffItem) string {
 	prefix := resourceKindLabel(item.ResourceKind)
+	var label string
 	switch item.Kind {
 	case KindNew:
-		return fmt.Sprintf("%s[install] %s@%s", prefix, item.Name, item.DesiredVersion)
+		label = fmt.Sprintf("%s[install] %s@%s", prefix, item.Name, item.DesiredVersion)
 	case KindRemoved:
-		return fmt.Sprintf("%s[uninstall] %s@%s", prefix, item.Name, item.LocalVersion)
+		label = fmt.Sprintf("%s[uninstall] %s@%s", prefix, item.Name, item.LocalVersion)
 	case KindUpdate:
-		return fmt.Sprintf("%s[update available] %s: %s -> %s", prefix, item.Name, item.LocalVersion, item.DesiredVersion)
+		label = fmt.Sprintf("%s[update available] %s: %s -> %s", prefix, item.Name, item.LocalVersion, item.DesiredVersion)
 	default:
-		return prefix + item.Name
+		label = prefix + item.Name
 	}
+	if item.OwnershipWarning {
+		label += " (warning: not managed by devsync — apply will overwrite unmanaged content)"
+	}
+	return label
 }
 
 // SelectAndConfirm renders a huh multi-select checklist over the given

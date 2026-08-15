@@ -160,6 +160,167 @@ func TestUpdateLock_SkipsFailedApplies(t *testing.T) {
 	}
 }
 
+func TestPartitionOwnership(t *testing.T) {
+	tests := []struct {
+		name              string
+		local             []Resource
+		desired           []Resource
+		lock              LockFile
+		wantOwnedNames    []string
+		wantConflictNames []string
+		wantAdoptedNames  []string
+	}{
+		{
+			name:  "owned resource passes through to owned",
+			local: []Resource{{Kind: ResourceKindTool, Name: "node", Version: "24.0.0"}},
+			desired: []Resource{
+				{Kind: ResourceKindTool, Name: "node", Version: "24.0.0"},
+			},
+			lock: LockFile{Resources: []LockedItem{
+				{Kind: ResourceKindTool, Name: "node", Version: "20.0.0"},
+			}},
+			wantOwnedNames:    []string{"node"},
+			wantConflictNames: nil,
+			wantAdoptedNames:  nil,
+		},
+		{
+			name:              "dropped-foreign: not in lock, no desired match, excluded entirely",
+			local:             []Resource{{Kind: ResourceKindSkill, Name: "orphan-skill", Version: "hash1"}},
+			desired:           []Resource{},
+			lock:              LockFile{},
+			wantOwnedNames:    nil,
+			wantConflictNames: nil,
+			wantAdoptedNames:  nil,
+		},
+		{
+			name:    "adopted-foreign: not in lock, desired match, exact Version match",
+			local:   []Resource{{Kind: ResourceKindSkill, Name: "pr-reviewer", Version: "abc123"}},
+			desired: []Resource{{Kind: ResourceKindSkill, Name: "pr-reviewer", Version: "abc123"}},
+			lock:    LockFile{},
+
+			wantOwnedNames:    []string{"pr-reviewer"},
+			wantConflictNames: nil,
+			wantAdoptedNames:  []string{"pr-reviewer"},
+		},
+		{
+			name: "adopted-foreign: exact match via ComparisonVersion when both populated",
+			local: []Resource{
+				{Kind: ResourceKindTool, Name: "node", Version: "24.0.5", ComparisonVersion: "24"},
+			},
+			desired: []Resource{
+				{Kind: ResourceKindTool, Name: "node", Version: "24.1.0", ComparisonVersion: "24"},
+			},
+			lock:              LockFile{},
+			wantOwnedNames:    []string{"node"},
+			wantConflictNames: nil,
+			wantAdoptedNames:  []string{"node"},
+		},
+		{
+			name:              "conflicting-foreign: not in lock, desired name match, content differs",
+			local:             []Resource{{Kind: ResourceKindSkill, Name: "pr-reviewer", Version: "different-hash"}},
+			desired:           []Resource{{Kind: ResourceKindSkill, Name: "pr-reviewer", Version: "abc123"}},
+			lock:              LockFile{},
+			wantOwnedNames:    nil,
+			wantConflictNames: []string{"pr-reviewer"},
+			wantAdoptedNames:  nil,
+		},
+		{
+			name:              "_shared: dropped-foreign behaves like any other name",
+			local:             []Resource{{Kind: ResourceKindSkill, Name: "_shared", Version: "hash1"}},
+			desired:           []Resource{},
+			lock:              LockFile{},
+			wantOwnedNames:    nil,
+			wantConflictNames: nil,
+			wantAdoptedNames:  nil,
+		},
+		{
+			name:              "_shared: adopted-foreign behaves like any other name",
+			local:             []Resource{{Kind: ResourceKindSkill, Name: "_shared", Version: "abc123"}},
+			desired:           []Resource{{Kind: ResourceKindSkill, Name: "_shared", Version: "abc123"}},
+			lock:              LockFile{},
+			wantOwnedNames:    []string{"_shared"},
+			wantConflictNames: nil,
+			wantAdoptedNames:  []string{"_shared"},
+		},
+		{
+			name:              "_shared: conflicting-foreign behaves like any other name",
+			local:             []Resource{{Kind: ResourceKindSkill, Name: "_shared", Version: "different-hash"}},
+			desired:           []Resource{{Kind: ResourceKindSkill, Name: "_shared", Version: "abc123"}},
+			lock:              LockFile{},
+			wantOwnedNames:    nil,
+			wantConflictNames: []string{"_shared"},
+			wantAdoptedNames:  nil,
+		},
+		{
+			name:              "_shared: owned behaves like any other name",
+			local:             []Resource{{Kind: ResourceKindSkill, Name: "_shared", Version: "hash-updated"}},
+			desired:           []Resource{{Kind: ResourceKindSkill, Name: "_shared", Version: "hash-desired"}},
+			lock:              LockFile{Resources: []LockedItem{{Kind: ResourceKindSkill, Name: "_shared", Version: "hash-old"}}},
+			wantOwnedNames:    []string{"_shared"},
+			wantConflictNames: nil,
+			wantAdoptedNames:  nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			owned, conflictNames, adopted := partitionOwnership(tt.local, tt.desired, tt.lock)
+
+			gotOwnedNames := make([]string, 0, len(owned))
+			for _, r := range owned {
+				gotOwnedNames = append(gotOwnedNames, r.Name)
+			}
+			if !equalStringSlices(gotOwnedNames, tt.wantOwnedNames) {
+				t.Errorf("owned names = %v, want %v", gotOwnedNames, tt.wantOwnedNames)
+			}
+
+			gotConflictNames := make([]string, 0, len(conflictNames))
+			for name := range conflictNames {
+				gotConflictNames = append(gotConflictNames, name)
+			}
+			if !equalStringSlicesUnordered(gotConflictNames, tt.wantConflictNames) {
+				t.Errorf("conflictNames = %v, want %v", gotConflictNames, tt.wantConflictNames)
+			}
+
+			gotAdoptedNames := make([]string, 0, len(adopted))
+			for _, item := range adopted {
+				gotAdoptedNames = append(gotAdoptedNames, item.Name)
+			}
+			if !equalStringSlices(gotAdoptedNames, tt.wantAdoptedNames) {
+				t.Errorf("adopted names = %v, want %v", gotAdoptedNames, tt.wantAdoptedNames)
+			}
+		})
+	}
+}
+
+func equalStringSlices(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+func equalStringSlicesUnordered(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	seen := make(map[string]bool, len(a))
+	for _, s := range a {
+		seen[s] = true
+	}
+	for _, s := range b {
+		if !seen[s] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestUpdateLock_RemovedSuccessDeletesEntry(t *testing.T) {
 	lock := LockFile{Resources: []LockedItem{
 		{Kind: ResourceKindTool, Name: "watchexec", Version: "1.0.0"},

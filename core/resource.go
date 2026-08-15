@@ -60,6 +60,12 @@ type DiffItem struct {
 	// the lock file for future reconcileWithLock short-circuiting.
 	// Skills only; nil for tools.
 	DesiredMTime *time.Time
+
+	// OwnershipWarning is true when this item is a foreign resource
+	// (not lock-tracked) that shares a name with desired state but
+	// differs in content — apply will overwrite unmanaged local
+	// content. Set only by core.Run(), never by Diff().
+	OwnershipWarning bool
 }
 
 // ApplyResult is the outcome of attempting to apply one DiffItem.

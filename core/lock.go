@@ -172,6 +172,81 @@ func updateLock(lock *LockFile, results []ApplyResult) {
 	})
 }
 
+// partitionOwnership splits local into owned (lock-tracked, plus any
+// adopted-foreign resource) to feed Diff(), the set of names that are
+// foreign-but-desired (content differs — install-with-warning), and
+// adopted LockedItems for foreign resources whose Version (or
+// ComparisonVersion, when both sides populate it) exactly matches
+// their desired counterpart. An adopted-foreign resource is included
+// in owned as well as adopted: feeding it to Diff() lets Diff's own
+// "present on both sides, same version -> no-op" rule naturally
+// produce zero diff items for it, while adopted separately carries the
+// LockedItem the caller appends to lock.Resources. A foreign resource
+// with no desired counterpart is dropped from all three outputs —
+// never surfaced, never locked. Keyed by (Kind, Name) via lockKey,
+// reusing Diff()'s existing ComparisonVersion-when-both-populated
+// equality rule for adopted-vs-conflicting classification.
+func partitionOwnership(local, desired []Resource, lock LockFile) (
+	owned []Resource,
+	conflictNames map[string]bool,
+	adopted []LockedItem,
+) {
+	lockedKeys := make(map[string]bool, len(lock.Resources))
+	for _, item := range lock.Resources {
+		lockedKeys[lockKey(item.Kind, item.Name)] = true
+	}
+
+	desiredByKey := make(map[string]Resource, len(desired))
+	for _, d := range desired {
+		desiredByKey[lockKey(d.Kind, d.Name)] = d
+	}
+
+	conflictNames = make(map[string]bool)
+	now := time.Now().UTC()
+
+	for _, r := range local {
+		key := lockKey(r.Kind, r.Name)
+
+		if lockedKeys[key] {
+			owned = append(owned, r)
+			continue
+		}
+
+		desiredRes, inDesired := desiredByKey[key]
+		if !inDesired {
+			// dropped-foreign: never surfaced, never locked.
+			continue
+		}
+
+		compareLocal, compareDesired := r.Version, desiredRes.Version
+		if r.ComparisonVersion != "" && desiredRes.ComparisonVersion != "" {
+			compareLocal, compareDesired = r.ComparisonVersion, desiredRes.ComparisonVersion
+		}
+
+		if compareLocal == compareDesired {
+			// adopted-foreign: exact match. Also fed to owned so
+			// Diff() sees matching local/desired versions and emits
+			// no diff item for it (Diff's own "same version -> no-op"
+			// rule), while being registered into the lock so future
+			// runs treat it as lock-owned.
+			owned = append(owned, r)
+			adopted = append(adopted, LockedItem{
+				Kind:        r.Kind,
+				Name:        r.Name,
+				Version:     r.Version,
+				InstalledAt: now,
+				SourceMTime: r.SourceMTime,
+			})
+			continue
+		}
+
+		// conflicting-foreign: name matches, content differs.
+		conflictNames[r.Name] = true
+	}
+
+	return owned, conflictNames, adopted
+}
+
 func lockKey(kind ResourceKind, name string) string {
 	return string(kind) + "\x00" + name
 }

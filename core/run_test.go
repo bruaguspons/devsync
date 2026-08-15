@@ -89,6 +89,106 @@ func TestRun_CombinedDiffAggregatesAcrossProviders(t *testing.T) {
 	}
 }
 
+func TestRun_OwnershipPartitioning(t *testing.T) {
+	skillProvider := &fakeProvider{
+		kind: ResourceKindSkill,
+		local: []Resource{
+			{Kind: ResourceKindSkill, Name: "orphan-skill", Version: "hash-orphan"},
+			{Kind: ResourceKindSkill, Name: "adopted-skill", Version: "matching-hash"},
+			{Kind: ResourceKindSkill, Name: "conflicting-skill", Version: "local-hash"},
+		},
+		desired: []Resource{
+			{Kind: ResourceKindSkill, Name: "adopted-skill", Version: "matching-hash"},
+			{Kind: ResourceKindSkill, Name: "conflicting-skill", Version: "desired-hash"},
+		},
+	}
+
+	lockPath := filepath.Join(t.TempDir(), "lock.json")
+
+	// Run() cannot be driven through its interactive SelectAndConfirm
+	// path in a unit test; replicate Run's diff-gathering loop with the
+	// ownership partitioning step wired in, matching the intended
+	// core/run.go change.
+	lock, err := LoadLock(lockPath)
+	if err != nil {
+		t.Fatalf("LoadLock: %v", err)
+	}
+
+	var allDiffs []DiffItem
+	for _, p := range []Provider{skillProvider} {
+		local, err := p.LocalState()
+		if err != nil {
+			t.Fatalf("LocalState: %v", err)
+		}
+		desired, err := p.DesiredState()
+		if err != nil {
+			t.Fatalf("DesiredState: %v", err)
+		}
+
+		local = reconcileWithLock(local, lock)
+		owned, conflicts, adopted := partitionOwnership(local, desired, lock)
+		lock.Resources = append(lock.Resources, adopted...)
+
+		diffs := Diff(owned, desired)
+		for i := range diffs {
+			if conflicts[diffs[i].Name] {
+				diffs[i].OwnershipWarning = true
+			}
+		}
+		allDiffs = append(allDiffs, diffs...)
+	}
+
+	if err := SaveLock(lockPath, lock); err != nil {
+		t.Fatalf("SaveLock: %v", err)
+	}
+
+	// (a) foreign local resource absent from desired never appears in allDiffs.
+	for _, d := range allDiffs {
+		if d.Name == "orphan-skill" {
+			t.Fatalf("allDiffs = %+v, orphan-skill (foreign, no desired match) must not appear", allDiffs)
+		}
+	}
+
+	// (b) foreign local resource whose Version exactly matches desired
+	// produces zero diff items and appears in lock.Resources.
+	for _, d := range allDiffs {
+		if d.Name == "adopted-skill" {
+			t.Fatalf("allDiffs = %+v, adopted-skill (exact match) must produce zero diff items", allDiffs)
+		}
+	}
+	reloaded, err := LoadLock(lockPath)
+	if err != nil {
+		t.Fatalf("LoadLock (reload): %v", err)
+	}
+	foundAdopted := false
+	for _, item := range reloaded.Resources {
+		if item.Kind == ResourceKindSkill && item.Name == "adopted-skill" {
+			foundAdopted = true
+		}
+	}
+	if !foundAdopted {
+		t.Fatalf("reloaded lock resources = %+v, want adopted-skill registered", reloaded.Resources)
+	}
+
+	// (c) foreign local resource sharing a desired name but differing
+	// content produces exactly one KindNew DiffItem with OwnershipWarning: true.
+	var conflictItem *DiffItem
+	for i := range allDiffs {
+		if allDiffs[i].Name == "conflicting-skill" {
+			conflictItem = &allDiffs[i]
+		}
+	}
+	if conflictItem == nil {
+		t.Fatalf("allDiffs = %+v, want a diff item for conflicting-skill", allDiffs)
+	}
+	if conflictItem.Kind != KindNew {
+		t.Fatalf("conflicting-skill diff kind = %v, want KindNew", conflictItem.Kind)
+	}
+	if !conflictItem.OwnershipWarning {
+		t.Fatalf("conflicting-skill diff = %+v, want OwnershipWarning: true", conflictItem)
+	}
+}
+
 func TestApplyAll_RoutesByResourceKind(t *testing.T) {
 	toolProvider := &fakeProvider{kind: ResourceKindTool}
 	skillProvider := &fakeProvider{kind: ResourceKindSkill}

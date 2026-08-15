@@ -36,7 +36,16 @@ func Run(providers []Provider, lockPath string, autoApply bool) error {
 		}
 
 		local = reconcileWithLock(local, lock)
-		allDiffs = append(allDiffs, Diff(local, desired)...)
+		owned, conflicts, adopted := partitionOwnership(local, desired, lock)
+		lock.Resources = append(lock.Resources, adopted...)
+
+		diffs := Diff(owned, desired)
+		for i := range diffs {
+			if conflicts[diffs[i].Name] {
+				diffs[i].OwnershipWarning = true
+			}
+		}
+		allDiffs = append(allDiffs, diffs...)
 	}
 
 	if len(allDiffs) == 0 {
