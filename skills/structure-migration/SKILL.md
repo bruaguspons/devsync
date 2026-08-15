@@ -13,7 +13,7 @@ Load when asked to audit or reorganize an existing tree: bloated bucket folders 
 
 ## Hard Rules
 
-- Read `../_shared/structure-architecture-contract.md` and `../_shared/structure-layouts-by-stack.md` first; its detection order, placement rules, thresholds, and mixing criteria are binding.
+- Read `../_shared_devsync/structure-architecture-contract.md` and `../_shared_devsync/structure-layouts-by-stack.md` first; its detection order, placement rules, thresholds, and mixing criteria are binding.
 - Detect framework + major version and adapt to its conventions, naming idioms, and convention-driven paths. When uncertain, fetch its current official docs (context7 preferred) before proposing any move. Never transplant another ecosystem's layout.
 - Split files only for mixed responsibilities, never for size. Report large cohesive files as inspected-and-correct; do not propose moving them.
 - Behavior-neutral only. Moves, renames, splits, and import updates — no logic changes, no API redesign, no dependency upgrades. Bugs found become a separate report.
@@ -62,6 +62,6 @@ Return:
 
 ## References
 
-- `../_shared/structure-architecture-contract.md` — detection order, placement rules, thresholds, responsibility smells.
-- `../_shared/structure-layouts-by-stack.md` — canonical target layouts per stack.
+- `../_shared_devsync/structure-architecture-contract.md` — detection order, placement rules, thresholds, responsibility smells.
+- `../_shared_devsync/structure-layouts-by-stack.md` — canonical target layouts per stack.
 - `../file-placement/SKILL.md` — preventive placement for new files.

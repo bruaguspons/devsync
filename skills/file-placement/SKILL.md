@@ -15,7 +15,7 @@ Skip only for single-line edits inside an already-correct file.
 
 ## Hard Rules
 
-- Read `../_shared/structure-architecture-contract.md` and `../_shared/structure-layouts-by-stack.md` before choosing a path. Its detection order, placement rules, thresholds, and smells are binding.
+- Read `../_shared_devsync/structure-architecture-contract.md` and `../_shared_devsync/structure-layouts-by-stack.md` before choosing a path. Its detection order, placement rules, thresholds, and smells are binding.
 - Detect stack, framework major version, and existing architecture from the repo first. Match the dominant real convention and the framework's own idioms (naming case, suffixes, module unit, test root); never introduce a second competing layout. When the framework's convention is uncertain, fetch its current official docs (context7 preferred) before choosing a path.
 - One responsibility per file. If the planned file would serve transport + business rule + persistence + mapping, or more than one entity/use case, create separate files instead.
 - Never split by size. A long file is fine when it serves one responsibility; only mixed responsibilities justify more files. Do not pre-split a cohesive unit to keep files small.
@@ -56,6 +56,6 @@ Return:
 
 ## References
 
-- `../_shared/structure-architecture-contract.md` — detection order, placement rules, thresholds, responsibility smells.
-- `../_shared/structure-layouts-by-stack.md` — canonical target layouts per stack.
+- `../_shared_devsync/structure-architecture-contract.md` — detection order, placement rules, thresholds, responsibility smells.
+- `../_shared_devsync/structure-layouts-by-stack.md` — canonical target layouts per stack.
 - `../structure-migration/SKILL.md` — remediation of existing structure.
