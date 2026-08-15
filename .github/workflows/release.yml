@@ -30,3 +30,72 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  demo-gif:
+    needs: goreleaser
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build devsync
+        run: go build -o devsync .
+
+      - name: Install mise
+        uses: jdx/mise-action@v2
+        with:
+          install: false
+
+      - name: Install VHS
+        uses: charmbracelet/vhs-action@v2
+
+      - name: Build demo fixture
+        run: |
+          set -euo pipefail
+          demo_home="$(mktemp -d)"
+          mkdir -p "$demo_home/.local/bin" \
+            "$demo_home/.local/share/devsync/skills.snapshot/hello-world" \
+            "$demo_home/.claude/skills"
+
+          cp devsync "$demo_home/.local/bin/devsync"
+
+          cat > "$demo_home/.local/share/devsync/mise.toml.snapshot" <<'EOF'
+          [tools]
+          jq = "1.7.1"
+          EOF
+
+          cat > "$demo_home/.local/share/devsync/skills.snapshot/hello-world/SKILL.md" <<'EOF'
+          # hello-world
+
+          A tiny placeholder skill used only to demo devsync's skill sync
+          in docs/demo.gif.
+          EOF
+
+          echo "DEMO_HOME=$demo_home" >> "$GITHUB_ENV"
+
+      - name: Record demo GIF
+        env:
+          HOME: ${{ env.DEMO_HOME }}
+        run: |
+          export PATH="$DEMO_HOME/.local/bin:$PATH"
+          vhs docs/demo.tape
+
+      - name: Commit updated GIF
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- docs/demo.gif; then
+            echo "demo.gif unchanged, nothing to commit"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/demo.gif
+          git commit -m "chore: update demo gif for ${{ github.ref_name }} [skip ci]"
+          git push origin HEAD:main
